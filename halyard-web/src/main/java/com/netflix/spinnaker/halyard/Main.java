@@ -16,6 +16,10 @@
 
 package com.netflix.spinnaker.halyard;
 
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
+
+
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.support.SpringBootServletInitializer;
@@ -45,6 +49,27 @@ public class Main extends SpringBootServletInitializer {
   }
 
   public static void main(String... args) {
+  
+  Authenticator.setDefault(new Authenticator() {
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+            if (getRequestorType() == RequestorType.PROXY) {
+                String prot = getRequestingProtocol().toLowerCase();
+                String host = System.getProperty(prot + ".proxyHost", "");
+                String port = System.getProperty(prot + ".proxyPort", "80");
+                String user = System.getProperty(prot + ".proxyUser", "");
+                String password = System.getProperty(prot + ".proxyPassword", "");
+
+                if (getRequestingHost().equalsIgnoreCase(host)) {
+                    if (Integer.parseInt(port) == getRequestingPort()) {
+                        return new PasswordAuthentication(user, password.toCharArray());  
+                    }
+                }
+            }
+            return null;
+        }  
+    });
+    
     new SpringApplicationBuilder().properties(DEFAULT_PROPS).sources(Main.class).run(args);
   }
 
